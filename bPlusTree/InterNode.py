@@ -10,7 +10,7 @@ class InterNode:
         return False
 
     def isFull(self):
-        return len(self.indexValueList) >= self.__order - 1
+        return len(self.indexValueList) > self.__order - 1
 
     def isLessThanHalf(self):
         return len(self.indexValueList) < (self.__order - 1) / 2 - 1

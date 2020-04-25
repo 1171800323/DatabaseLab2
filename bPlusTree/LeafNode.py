@@ -1,7 +1,7 @@
 class LeafNode:
     def __init__(self, order):
         self.__order = order
-        self.keyValue = []
+        self.keyValueList = []
         self.brother = None
         self.parent = None
 
@@ -10,7 +10,7 @@ class LeafNode:
         return True
 
     def isFull(self):
-        return len(self.keyValue) >= self.__order - 1
+        return len(self.keyValueList) > self.__order - 1
 
     def isLessThanHalf(self):
-        return len(self.keyValue) < (self.__order - 1) / 2
+        return len(self.keyValueList) < (self.__order - 1) / 2
