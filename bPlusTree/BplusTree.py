@@ -96,6 +96,7 @@ class BplusTree:
                 parent.pointerList.insert(index + 1, newLeaf)
                 newLeaf.parent = leafNode.parent
             leafNode.keyValueList = leafNode.keyValueList[:mid]
+            newLeaf.brother = leafNode.brother
             leafNode.brother = newLeaf
             return leafNode.parent
 
@@ -137,11 +138,128 @@ class BplusTree:
                 else:
                     print([v.key for v in w.keyValueList], 'leaf height =', h)
 
-    def search(self):
-        pass
+    def leaves(self):
+        result = []
+        leaf = self.__leaf
+        while True:
+            result.extend(leaf.keyValueList)
+            if leaf.brother is None:
+                return result
+            else:
+                leaf = leaf.brother
+        return result
 
-    def delete(self):
-        pass
+    def search(self, low=None, high=None):
+        result = []
+        node = self.__root
+        leaf = self.__leaf
+        if low is None and high is None:
+            raise ValueError('no range')
+        elif low is not None and high is not None and low > high:
+            raise ValueError('lower can not be greater than upper')
+
+        def search_key(n, k):
+            if n.isLeaf():
+                sortedList = [x.key for x in n.keyValueList]
+                i = binary_search_left(sortedList, k)
+                return i, n
+            else:
+                i = binary_search_right(n.indexValueList, k)
+                return search_key(n.pointerList[i], k)
+
+        if low is None:
+            while True:
+                for keyValue in leaf.keyValueList:
+                    if keyValue.key <= high:
+                        result.append(keyValue)
+                    else:
+                        return result
+                    if leaf.brother is None:
+                        return result
+                    else:
+                        leaf = leaf.brother
+        elif high is None:
+            index, leaf = search_key(node, low)
+            result.extend(leaf.keyValueList[index:])
+            while True:
+                if leaf.brother is None:
+                    return result
+                else:
+                    leaf = leaf.brother
+                    result.extend(leaf.keyValueList)
+        else:
+            if low == high:
+                index, leaf = search_key(node, low)
+                try:
+                    if leaf.keyValueList[index].key == low:
+                        result.append(leaf.keyValueList[index])
+                        return result
+                    else:
+                        return result
+                except IndexError:
+                    return result
+            else:
+                index1, leaf1 = search_key(node, low)
+                index2, leaf2 = search_key(node, high)
+                if leaf1 is leaf2:
+                    result.extend(leaf1.keyValueList[index1:index2])
+                    return result
+                else:
+                    result.extend(leaf1.keyValueList[index1:])
+                    leaf = leaf1
+                    while True:
+                        if leaf.brother is leaf2:
+                            result.extend(leaf2.keyValueList[:index2 + 1])
+                            return result
+                        else:
+                            result.extend(leaf.brother.keyValueList)
+                            leaf = leaf.brother
+
+    def delete(self, key):
+        def merge(node, index):
+            pass
+
+        def transfer_leftToRight(node, index):
+            pass
+
+        def transfer_rightToLeft(node, index):
+            pass
+
+        def delete_node(node, k):
+            if not node.isLeaf():
+                index = binary_search_right(node.indexValueList, k)
+                if index == len(node.indexValueList):
+                    if not node.pointerList[index].isLessThanHalf():
+                        return delete_node(node.pointerList[index], k)
+                    elif not node.pointerList[index - 1].isLessThanHalf():
+                        transfer_leftToRight(node, index - 1)
+                        return delete_node(node.pointerList[index], k)
+                    else:
+                        return delete_node(merge(node, index), k)
+
+                else:
+                    if not node.pointerList[index].isLessThanHalf():
+                        return delete_node(node.pointerList[index], k)
+                    elif not node.pointerList[index + 1].isLessThanHalf():
+                        transfer_rightToLeft(node, index)
+                        return delete_node(node.pointerList[index], k)
+                    else:
+                        return delete_node(merge(node, index), k)
+            else:
+                sortedList = [x.key for x in node.keyValueList]
+                index = binary_search_left(sortedList, k)
+                try:
+                    keyValue = node.keyValueList[index]
+                except IndexError:
+                    return -1
+                else:
+                    if keyValue.key != k:
+                        return -1
+                    else:
+                        node.keyValueList.remove(keyValue)
+                        return 0
+
+        delete_node(self.__root, key)
 
 
 if __name__ == '__main__':
@@ -153,6 +271,10 @@ if __name__ == '__main__':
         bpTree.insert(kv)
         print('insert ', kv)
         bpTree.show()
+        print([x.key for x in bpTree.leaves()])
         print()
 
     print('hello')
+    l0 = [3, 5]
+    print(binary_search_right(l0, 6))
+    print(binary_search_left(l0, 5))
