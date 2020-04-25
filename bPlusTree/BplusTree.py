@@ -217,13 +217,67 @@ class BplusTree:
 
     def delete(self, key):
         def merge(node, index):
-            pass
+            child = node.pointerList[index]
+            if child.isLeaf():
+                child.keyValueList = child.keyValueList \
+                                     + node.pointerList[index + 1].keyValueList
+                child.brother = node.pointerList[index + 1].brother
+            else:
+                child.indexValueList = \
+                    child.indexValueList + [node.indexValueList[index]] \
+                    + node.pointerList[index + 1].indexValueList
+                child.pointerList = child.pointerList \
+                                    + node.pointerList[index + 1].pointerList
+            node.poiterList.remove(node.pointerList[index + 1])
+            node.indexValueList.remove(node.indexValueList[index])
+            if not node.indexValueList:
+                node.pointerList[0].parent = None
+                self.__root = node.pointerList[0]
+                del node
+                return self.__root
+            else:
+                return node
 
         def transfer_leftToRight(node, index):
-            pass
+            if not node.pointerList[index].isLeaf():
+                node.pointerList[index + 1].pointerList. \
+                    insert(0, node.pointerList[index].pointerList[-1])
+                node.pointerList[index].pointerList[-1].parent = \
+                    node.pointerList[index + 1]
+                node.pointerList[index + 1].indexValueList \
+                    .insert(0, node.pointerList[index].indexValueList[-1])
+                node.indexValueList[index + 1] = \
+                    node.pointerList[index].indexValueList[-1]
+                node.pointerList[index].pointerList.pop()
+                node.pointerList[index].indexValueList.pop()
+            else:
+                node.pointerList[index + 1].keyValueList. \
+                    insert(0, node.pointerList[index].keyValueList[-1])
+                node.pointerList[index].keyValueList.pop()
+                node.indexValueList[index] = node.pointerList[index + 1]. \
+                    keyValueList[0].key
 
         def transfer_rightToLeft(node, index):
-            pass
+            if not node.pointerList[index].isLeaf():
+                node.pointerList[index].pointerList. \
+                    append(node.pointerList[index + 1].pointerList[0])
+                node.pointerList[index + 1].pointerList[0].parent = \
+                    node.pointerList[index]
+                node.pointerList[index].indexValueList. \
+                    append(node.pointerList[index + 1].indexValueList[0])
+                node.indexValueList[index] = \
+                    node.pointerList[index + 1].indexValueList[0]
+                node.pointerList[index + 1].pointerList. \
+                    remove(node.pointerList[index + 1].pointerList[0])
+                node.pointerList[index + 1].indexValueList. \
+                    remove(node.pointerList[index + 1].indexValueList[0])
+            else:
+                node.pointerList[index].keyValueList. \
+                    append(node.pointerList[index + 1].keyValueList[0])
+                node.pointerList[index + 1].keyValueList. \
+                    remove(node.pointerList[index + 1].keyValueList[0])
+                node.indexValueList[index] = node.pointerList[index + 1]. \
+                    keyValueList[0].key
 
         def delete_node(node, k):
             if not node.isLeaf():
@@ -235,8 +289,7 @@ class BplusTree:
                         transfer_leftToRight(node, index - 1)
                         return delete_node(node.pointerList[index], k)
                     else:
-                        return delete_node(merge(node, index), k)
-
+                        return delete_node(merge(node, index - 1), k)
                 else:
                     if not node.pointerList[index].isLessThanHalf():
                         return delete_node(node.pointerList[index], k)
@@ -278,3 +331,4 @@ if __name__ == '__main__':
     l0 = [3, 5]
     print(binary_search_right(l0, 6))
     print(binary_search_left(l0, 5))
+    print(l0[-1])
