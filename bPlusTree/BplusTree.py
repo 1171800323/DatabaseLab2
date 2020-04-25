@@ -1,3 +1,5 @@
+from collections import deque
+
 import pandas as pd
 
 from bPlusTree.InterNode import InterNode
@@ -64,11 +66,13 @@ class BplusTree:
                 newRoot = InterNode(self.__order)
                 newRoot.indexValueList = [interNode.indexValueList[mid - 1]]
                 newRoot.pointerList = [interNode, newNode]
+                interNode.parent = newRoot
+                newNode.parent = newRoot
                 self.__root = newRoot
             else:
                 parent = interNode.parent
                 index = parent.pointerList.index(interNode)
-                parent.indexList.insert(index, interNode.indexValueList[mid - 1])
+                parent.indexValueList.insert(index, interNode.indexValueList[mid - 1])
                 parent.pointerList.insert(index + 1, newNode)
             interNode.indexValueList = interNode.indexValueList[:mid - 1]
             interNode.pointerList = interNode.pointerList[:mid]
@@ -78,7 +82,7 @@ class BplusTree:
             mid = self.__order // 2
             newLeaf = LeafNode(self.__order)
             newLeaf.keyValueList = leafNode.keyValueList[mid:]
-            if newLeaf.parent is None:
+            if leafNode.parent is None:
                 newRoot = InterNode(self.__order)
                 newRoot.indexValueList = [leafNode.keyValueList[mid].key]
                 newRoot.pointerList = [leafNode, newLeaf]
@@ -93,24 +97,45 @@ class BplusTree:
                 newLeaf.parent = leafNode.parent
             leafNode.keyValueList = leafNode.keyValueList[:mid]
             leafNode.brother = newLeaf
+            return leafNode.parent
 
-        def insert_node(n):
+        def insert_node(n, canInsert=True):
             if n.isLeaf():
-                sortedList = [x.key for x in n.keyValueList]
-                index = binary_search_right(sortedList, keyValue.key)
-                n.keyValueList.insert(index, keyValue)
+                if canInsert:
+                    sortedList = [x.key for x in n.keyValueList]
+                    index = binary_search_right(sortedList, keyValue.key)
+                    n.keyValueList.insert(index, keyValue)
                 if n.isFull():
-                    split_leaf(n)
+                    insert_node(split_leaf(n), False)
                 else:
                     return
             else:
                 if n.isFull():
-                    insert_node(split_inter(n))
+                    insert_node(split_inter(n), canInsert)
                 else:
                     index = binary_search_right(n.indexValueList, keyValue.key)
-                    insert_node(n.pointerList[index])
+                    insert_node(n.pointerList[index], canInsert)
 
         insert_node(node)
+
+    def show(self):
+        print('B+ Tree: ')
+        queue = deque()
+        height = 0
+        queue.append([self.__root, height])
+        while True:
+            try:
+                w, h = queue.popleft()
+            except IndexError:
+                return
+            else:
+                if not w.isLeaf():
+                    print(w.indexValueList, 'inter height = ', h)
+                    if h == height:
+                        height += 1
+                    queue.extend([[i, height] for i in w.pointerList])
+                else:
+                    print([v.key for v in w.keyValueList], 'leaf height =', h)
 
     def search(self):
         pass
@@ -120,10 +145,14 @@ class BplusTree:
 
 
 if __name__ == '__main__':
-    l1 = read_data('../ex1.csv')
+    l1 = read_data('../ex2.csv')
     # l1 = read_data()
     print([x.__str__() for x in l1])
     bpTree = BplusTree(4)
     for kv in l1:
         bpTree.insert(kv)
+        print('insert ', kv)
+        bpTree.show()
+        print()
+
     print('hello')
