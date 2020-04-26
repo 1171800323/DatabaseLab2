@@ -13,4 +13,4 @@ class LeafNode:
         return len(self.keyValueList) > self.__order - 1
 
     def isLessThanHalf(self):
-        return len(self.keyValueList - 1) < (self.__order - 1) / 2
+        return len(self.keyValueList) - 1 < (self.__order - 1) / 2

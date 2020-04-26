@@ -173,7 +173,6 @@ class BplusTree:
                 return result
             else:
                 leaf = leaf.brother
-        return result
 
     # 查询，从根结点开始，逐渐向下进入内结点，最后进入叶结点
     def search(self, low=None, high=None):
@@ -235,7 +234,7 @@ class BplusTree:
                 index1, leaf1 = search_key(node, low)
                 index2, leaf2 = search_key(node, high)
                 if leaf1 is leaf2:
-                    result.extend(leaf1.keyValueList[index1:index2])
+                    result.extend(leaf1.keyValueList[index1:index2 + 1])
                     return result
                 else:
                     result.extend(leaf1.keyValueList[index1:])
@@ -251,20 +250,26 @@ class BplusTree:
     # 根据键值删除
     def delete(self, key):
         def merge(node, index):
-            child = node.pointerList[index]
-            if child.isLeaf():
-                child.keyValueList = child.keyValueList \
-                                     + node.pointerList[index + 1].keyValueList
-                child.brother = node.pointerList[index + 1].brother
+            leftChild = node.pointerList[index]
+            rightChild = node.pointerList[index + 1]
+            if leftChild.isLeaf():
+                # 如果合并的是叶结点，将右儿子值复制到左儿子
+                leftChild.keyValueList = leftChild.keyValueList \
+                                         + rightChild.keyValueList
+                leftChild.brother = rightChild.brother
             else:
-                child.indexValueList = \
-                    child.indexValueList + [node.indexValueList[index]] \
-                    + node.pointerList[index + 1].indexValueList
-                child.pointerList = child.pointerList \
-                                    + node.pointerList[index + 1].pointerList
-            node.poiterList.remove(node.pointerList[index + 1])
+                # 如果合并的是内结点，将右儿子索引值和node结点index索引值复制到左儿子
+                leftChild.indexValueList = \
+                    leftChild.indexValueList + [node.indexValueList[index]] \
+                    + rightChild.indexValueList
+                # 将右儿子结点复制到左儿子
+                leftChild.pointerList = leftChild.pointerList + rightChild.pointerList
+            # 在node结点删除右儿子
+            node.pointerList.remove(rightChild)
+            # 在node结点删除索引值（已经移入左儿子作为合并后的结点 或者 合并叶结点之后要删除该索引值）
             node.indexValueList.remove(node.indexValueList[index])
             if not node.indexValueList:
+                # 如果node结点索引清空了，删掉该结点，重置根结点
                 node.pointerList[0].parent = None
                 self.__root = node.pointerList[0]
                 del node
@@ -273,44 +278,62 @@ class BplusTree:
                 return node
 
         def transfer_leftToRight(node, index):
-            if not node.pointerList[index].isLeaf():
-                node.pointerList[index + 1].pointerList. \
-                    insert(0, node.pointerList[index].pointerList[-1])
-                node.pointerList[index].pointerList[-1].parent = \
-                    node.pointerList[index + 1]
-                node.pointerList[index + 1].indexValueList \
-                    .insert(0, node.pointerList[index].indexValueList[-1])
+            leftChild = node.pointerList[index]
+            rightChild = node.pointerList[index + 1]
+            if not leftChild.isLeaf():
+                # 将index的最后一个结点追加到index+1的第一个结点
+                rightChild.pointerList. \
+                    insert(0, leftChild.pointerList[-1])
+                leftChild.pointerList[-1].parent = \
+                    rightChild
+                # 追加index+1的索引值
+                rightChild.indexValueList \
+                    .insert(0, leftChild.indexValueList[-1])
+                # 更新node的index+1的索引值
                 node.indexValueList[index + 1] = \
-                    node.pointerList[index].indexValueList[-1]
-                node.pointerList[index].pointerList.pop()
-                node.pointerList[index].indexValueList.pop()
+                    leftChild.indexValueList[-1]
+                # 删除index的最后一个结点和索引值
+                leftChild.pointerList.pop()
+                leftChild.indexValueList.pop()
             else:
-                node.pointerList[index + 1].keyValueList. \
-                    insert(0, node.pointerList[index].keyValueList[-1])
-                node.pointerList[index].keyValueList.pop()
-                node.indexValueList[index] = node.pointerList[index + 1]. \
+                # 将index的最后一个结点追加到index+1的第一个结点
+                rightChild.keyValueList. \
+                    insert(0, leftChild.keyValueList[-1])
+                # 删除index最后一个结点
+                leftChild.keyValueList.pop()
+                # 更新node的index索引值
+                node.indexValueList[index] = rightChild. \
                     keyValueList[0].key
 
         def transfer_rightToLeft(node, index):
-            if not node.pointerList[index].isLeaf():
-                node.pointerList[index].pointerList. \
-                    append(node.pointerList[index + 1].pointerList[0])
-                node.pointerList[index + 1].pointerList[0].parent = \
-                    node.pointerList[index]
-                node.pointerList[index].indexValueList. \
-                    append(node.pointerList[index + 1].indexValueList[0])
+            leftChild = node.pointerList[index]
+            rightChild = node.pointerList[index + 1]
+            if not leftChild.isLeaf():
+                # 将index+1的第一个结点追加到index的末尾
+                leftChild.pointerList. \
+                    append(rightChild.pointerList[0])
+                rightChild.pointerList[0].parent = \
+                    leftChild
+                # 追加index的index索引值
+                leftChild.indexValueList. \
+                    append(rightChild.indexValueList[0])
+                # 更新node的index索引值
                 node.indexValueList[index] = \
-                    node.pointerList[index + 1].indexValueList[0]
-                node.pointerList[index + 1].pointerList. \
-                    remove(node.pointerList[index + 1].pointerList[0])
-                node.pointerList[index + 1].indexValueList. \
-                    remove(node.pointerList[index + 1].indexValueList[0])
+                    rightChild.indexValueList[0]
+                # 删除index+1的第一个结点和索引值
+                rightChild.pointerList. \
+                    remove(rightChild.pointerList[0])
+                rightChild.indexValueList. \
+                    remove(rightChild.indexValueList[0])
             else:
-                node.pointerList[index].keyValueList. \
-                    append(node.pointerList[index + 1].keyValueList[0])
-                node.pointerList[index + 1].keyValueList. \
-                    remove(node.pointerList[index + 1].keyValueList[0])
-                node.indexValueList[index] = node.pointerList[index + 1]. \
+                # 将index+1的第一个结点追加到index的末尾
+                leftChild.keyValueList. \
+                    append(rightChild.keyValueList[0])
+                # 删除index+1的第一个结点
+                rightChild.keyValueList. \
+                    remove(rightChild.keyValueList[0])
+                # 更新node的index索引值
+                node.indexValueList[index] = rightChild. \
                     keyValueList[0].key
 
         # 递归删除
@@ -352,6 +375,10 @@ class BplusTree:
                         return -1
                     else:
                         node.keyValueList.remove(keyValue)
+                        parent_indexList = node.parent.indexValueList
+                        if k in parent_indexList:
+                            i = parent_indexList.index(k)
+                            parent_indexList[i] = node.keyValueList[0].key
                         return 0
 
         delete_node(self.__root, key)
@@ -366,11 +393,17 @@ if __name__ == '__main__':
         bpTree.insert(kv)
         print('insert ', kv)
         bpTree.show()
-        print([str(x.key)+x.value for x in bpTree.leaves()])
+        print([str(x.key) + x.value for x in bpTree.leaves()])
         print()
-
+    print('search: ')
+    searchResult = bpTree.search(1, 3)
+    print([str(x.key) + x.value for x in searchResult])
+    print('delete: ')
+    bpTree.delete(11)
+    bpTree.show()
     print('hello')
     l0 = [3, 5, 6, 7, 8]
+    print(l0.index(7))
     print(binary_search_right(l0, 4))
     print(binary_search_left(l0, 4))
     print(l0[-1])
