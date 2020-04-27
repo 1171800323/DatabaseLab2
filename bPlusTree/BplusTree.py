@@ -118,7 +118,7 @@ class BplusTree:
             leafNode.brother = newLeaf
             return leafNode.parent
 
-        # 递归插入，从根结点递归嵌套进入叶结点完成插入，插入之后再做处理使结点数目合法
+        # 递归插入，从根结点递归嵌套进入叶结点完成插入，插入之后再做处理（逐步向上）使结点数目合法
         def insert_node(n, canInsert=True):
             if n.isLeaf():
                 # 如果是叶结点，找到合适的位置完成插入
@@ -337,51 +337,69 @@ class BplusTree:
                     keyValueList[0].key
 
         # 递归删除
-        def delete_node(node, k):
-            if not node.isLeaf():
-                # 先对内结点做一些处理，然后再进入叶结点删除
-                index = binary_search_right(node.indexValueList, k)
-                # 如果结点数目少于一半（精确地说，删除一个会造成该结点数目不合法）
-                # 则应该找左右兄弟结点：
-                # 1. 兄弟结点能够借给它一个值（借出之后数目合法），然后再删除
-                # 2. 合并兄弟结点，然后对合并节点删除
-                # 如果不少于一半，即删除一个也不会引起不合法，那就直接进入该结点删除
-                if index == len(node.indexValueList):
-                    if not node.pointerList[index].isLessThanHalf():
-                        return delete_node(node.pointerList[index], k)
-                    elif not node.pointerList[index - 1].isLessThanHalf():
-                        transfer_leftToRight(node, index - 1)
-                        return delete_node(node.pointerList[index], k)
+        def delete_node(node, canDelete=True):
+            if node.isLeaf():
+                if canDelete:
+                    # 找到叶结点，删除对应的键值对（如果存在）
+                    sortedList = [x.key for x in node.keyValueList]
+                    index = binary_search_left(sortedList, key)
+                    try:
+                        keyValue = node.keyValueList[index]
+                    except IndexError:
+                        raise IndexError('index error')
                     else:
-                        return delete_node(merge(node, index - 1), k)
-                else:
-                    if not node.pointerList[index].isLessThanHalf():
-                        return delete_node(node.pointerList[index], k)
-                    elif not node.pointerList[index + 1].isLessThanHalf():
-                        transfer_rightToLeft(node, index)
-                        return delete_node(node.pointerList[index], k)
-                    else:
-                        return delete_node(merge(node, index), k)
-            else:
-                # 找到叶结点，删除对应的键值对（如果存在）
-                sortedList = [x.key for x in node.keyValueList]
-                index = binary_search_left(sortedList, k)
-                try:
-                    keyValue = node.keyValueList[index]
-                except IndexError:
-                    return -1
-                else:
-                    if keyValue.key != k:
-                        return -1
-                    else:
-                        node.keyValueList.remove(keyValue)
-                        parent_indexList = node.parent.indexValueList
-                        if k in parent_indexList:
-                            i = parent_indexList.index(k)
-                            parent_indexList[i] = node.keyValueList[0].key
-                        return 0
+                        if keyValue.key != key:
+                            raise ValueError('this key does not exist')
+                        else:
+                            node.keyValueList.remove(keyValue)
+                if node.isLessThanHalf():
+                    delete_node(node.parent, False)
+                parent_indexList = node.parent.indexValueList
+                if key in parent_indexList:
+                    i = parent_indexList.index(key)
+                    parent_indexList[i] = node.keyValueList[0].key
+                return
 
-        delete_node(self.__root, key)
+            else:
+                index = binary_search_right(node.indexValueList, key)
+                if index == len(node.indexValueList):
+                    leftChild = node.pointerList[index - 1]
+                    rightChild = node.pointerList[index]
+                    if rightChild.isLessThanHalf():
+                        if rightChild.isLeaf():
+                            if len(rightChild.keyValueList) + len(leftChild.keyValueList) <= self.__order - 1:
+                                delete_node(merge(node, index - 1), canDelete)
+                            else:
+                                transfer_leftToRight(node, index - 1)
+                                delete_node(rightChild, canDelete)
+                        else:
+                            if len(rightChild.pointerList) + len(leftChild.pointerList) <= self.__order:
+                                delete_node(merge(node, index - 1), canDelete)
+                            else:
+                                transfer_leftToRight(node, index - 1)
+                                delete_node(rightChild, canDelete)
+                    else:
+                        delete_node(rightChild, canDelete)
+                else:
+                    leftChild = node.pointerList[index]
+                    rightChild = node.pointerList[index + 1]
+                    if leftChild.isLessThanHalf():
+                        if leftChild.isLeaf():
+                            if len(rightChild.keyValueList) + len(leftChild.keyValueList) <= self.__order - 1:
+                                delete_node(merge(node, index), canDelete)
+                            else:
+                                transfer_rightToLeft(node, index)
+                                delete_node(leftChild, canDelete)
+                        else:
+                            if len(rightChild.pointerList) + len(leftChild.pointerList) <= self.__order:
+                                delete_node(merge(node, index), canDelete)
+                            else:
+                                transfer_rightToLeft(node, index)
+                                delete_node(leftChild, canDelete)
+                    else:
+                        delete_node(leftChild, canDelete)
+
+        delete_node(self.__root)
 
 
 if __name__ == '__main__':
@@ -399,7 +417,7 @@ if __name__ == '__main__':
     searchResult = bpTree.search(1, 3)
     print([str(x.key) + x.value for x in searchResult])
     print('delete: ')
-    bpTree.delete(11)
+    bpTree.delete(5)
     bpTree.show()
     print('hello')
     l0 = [3, 5, 6, 7, 8]
