@@ -268,14 +268,14 @@ class BplusTree:
             node.pointerList.remove(rightChild)
             # 在node结点删除索引值（已经移入左儿子作为合并后的结点 或者 合并叶结点之后要删除该索引值）
             node.indexValueList.remove(node.indexValueList[index])
-            if not node.indexValueList:
+            if not node.indexValueList and node.parent is None:
                 # 如果node结点索引清空了，删掉该结点，重置根结点
                 node.pointerList[0].parent = None
                 self.__root = node.pointerList[0]
                 del node
                 return self.__root
             else:
-                return node
+                return node.parent
 
         def transfer_leftToRight(node, index):
             leftChild = node.pointerList[index]
@@ -354,10 +354,11 @@ class BplusTree:
                             node.keyValueList.remove(keyValue)
                 if node.isLessThanHalf():
                     delete_node(node.parent, False)
-                parent_indexList = node.parent.indexValueList
-                if key in parent_indexList:
-                    i = parent_indexList.index(key)
-                    parent_indexList[i] = node.keyValueList[0].key
+                if node.parent is not None:
+                    parent_indexList = node.parent.indexValueList
+                    if key in parent_indexList:
+                        i = parent_indexList.index(key)
+                        parent_indexList[i] = node.keyValueList[0].key
                 return
 
             else:
@@ -417,7 +418,9 @@ if __name__ == '__main__':
     searchResult = bpTree.search(1, 3)
     print([str(x.key) + x.value for x in searchResult])
     print('delete: ')
-    bpTree.delete(5)
+    bpTree.delete(11)
+    bpTree.show()
+    bpTree.delete(7)
     bpTree.show()
     print('hello')
     l0 = [3, 5, 6, 7, 8]
