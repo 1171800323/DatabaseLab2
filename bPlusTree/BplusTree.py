@@ -407,10 +407,12 @@ if __name__ == '__main__':
     l1 = read_data('../ex2.csv')
     # l1 = read_data()
     print([x.__str__() for x in l1])
+    print('开始建树')
     bpTree = BplusTree(4)
     for kv in l1:
         bpTree.insert(kv)
         print('insert ', kv)
+        print(len(bpTree.leaves()))
         bpTree.show()
         print([str(x.key) + x.value for x in bpTree.leaves()])
         print()
