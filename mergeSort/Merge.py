@@ -63,7 +63,6 @@ def get_temp_file():
 # 读每一块到队列
 def read_block(filename):
     result = deque()
-    filename = 'temp/' + filename
     with open(filename, 'r', encoding='utf-8') as f:
         for line in f.readlines():
             result.append(int(line.strip()))
@@ -86,7 +85,7 @@ def merge(run=False):
         for num in file_dict.keys():
             file_queue = file_dict.get(num)
             block_dict.setdefault(num)
-            block_dict[num] = read_block(file_queue.popleft())
+            block_dict[num] = read_block('temp/' + file_queue.popleft())
         # 输出块
         output_block = []
         # 比较块
@@ -119,11 +118,45 @@ def merge(run=False):
             if not key_queue:
                 file_queue = file_dict.get(location)
                 if len(file_queue) != 0:
-                    block_dict[location] = read_block(file_queue.popleft())
+                    block_dict[location] = read_block('temp/' + file_queue.popleft())
                 else:
                     block_dict[location] = None
+
+
+# 使用python内置函数直接对原属数据排序，作为标准结果进行对比
+def standard_sort(run=False, filename='../data.csv'):
+    if run:
+        child_sets = []
+        data = pd.read_csv(filename, sep=',')
+        for number, keyValue in data.iterrows():
+            key = int(keyValue["key"])
+            child_sets.append(key)
+        write_block(sorted(child_sets), 'standard.txt')
+
+
+# 比较和标准版的差别，说明正确性
+def compare():
+    my = read_block('result.txt')
+    standard = read_block('standard.txt')
+    # 如果两个队列数目不一样，肯定不正确
+    if my.__len__() != standard.__len__():
+        print('Wrong!!!')
+        return
+    while True:
+        x = my.popleft()
+        y = standard.popleft()
+        # 如果同一位置数不相等，肯定不正确
+        if x != y:
+            print('Wrong!!!')
+            break
+        # 上面已经确保两队列长度相等，故只需判断当一个队列空就说明正确
+        if not my:
+            print('Right!')
+            break
 
 
 if __name__ == '__main__':
     split()
     merge()
+    standard_sort()
+    compare()

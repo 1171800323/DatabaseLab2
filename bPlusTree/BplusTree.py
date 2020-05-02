@@ -238,17 +238,17 @@ class BplusTree:
                     return result
             else:
                 # 分别找到存储键值low和high的结点，从low所在结点出发往后寻找直到high所在结点
-                index1, leaf1 = search_key(node, low)
-                index2, leaf2 = search_key(node, high)
-                if leaf1 is leaf2:
-                    result.extend(leaf1.keyValueList[index1:index2 + 1])
+                indexLow, leafLow = search_key(node, low)
+                indexHigh, leafHigh = search_key(node, high)
+                if leafLow is leafHigh:
+                    result.extend(leafLow.keyValueList[indexLow:indexHigh + 1])
                     return result
                 else:
-                    result.extend(leaf1.keyValueList[index1:])
-                    leaf = leaf1
+                    result.extend(leafLow.keyValueList[indexLow:])
+                    leaf = leafLow
                     while True:
-                        if leaf.brother is leaf2:
-                            result.extend(leaf2.keyValueList[:index2 + 1])
+                        if leaf.brother is leafHigh:
+                            result.extend(leafHigh.keyValueList[:indexHigh + 1])
                             return result
                         else:
                             result.extend(leaf.brother.keyValueList)
@@ -271,8 +271,6 @@ class BplusTree:
                     + rightChild.indexValueList
                 # 将右儿子结点复制到左儿子
                 leftChild.pointerList = leftChild.pointerList + rightChild.pointerList
-                print('+++++')
-                print(leftChild.indexValueList)
                 for leftChildChild in leftChild.pointerList:
                     leftChildChild.parent = leftChild
             # 在node结点删除右儿子
@@ -362,15 +360,17 @@ class BplusTree:
                         if keyValue.key != key:
                             return -1
                         else:
+                            # 正常删除之后，可能会引起结点合并等动作
                             node.keyValueList.remove(keyValue)
+                            # 如果删除后结点数少于一半，需要在父节点进行调整，要么合并，要么从兄弟结点借
                             if node.isLessThanHalf():
-                                return delete_node(node.parent, False)
+                                delete_node(node.parent, False)
                             else:
+                                # 如果删除后结点数目仍然合法，父节点的索引值可能需要改变
                                 if node.parent is not None:
+                                    index = binary_search_right(node.parent.indexValueList, key)
                                     parent_indexList = node.parent.indexValueList
-                                    if key in parent_indexList:
-                                        i = parent_indexList.index(key)
-                                        parent_indexList[i] = node.keyValueList[0].key
+                                    parent_indexList[index - 1] = node.keyValueList[0].key
                             return 0
             else:
                 index = binary_search_right(node.indexValueList, key)
@@ -384,14 +384,12 @@ class BplusTree:
                                 return delete_node(merge(node, index - 1), canDelete)
                             else:
                                 transfer_leftToRight(node, index - 1)
-                                return 0
                         else:
                             if len(rightChild.pointerList) + len(leftChild.pointerList) \
                                     <= self.__order:
                                 return delete_node(merge(node, index - 1), canDelete)
                             else:
                                 transfer_leftToRight(node, index - 1)
-                                return 0
                     else:
                         if canDelete:
                             return delete_node(rightChild, canDelete)
@@ -405,14 +403,12 @@ class BplusTree:
                                 return delete_node(merge(node, index), canDelete)
                             else:
                                 transfer_rightToLeft(node, index)
-                                return 0
                         else:
                             if len(rightChild.pointerList) + len(leftChild.pointerList) \
                                     <= self.__order:
                                 return delete_node(merge(node, index), canDelete)
                             else:
                                 transfer_rightToLeft(node, index)
-                                return 0
                     else:
                         if canDelete:
                             return delete_node(leftChild, canDelete)
@@ -420,11 +416,11 @@ class BplusTree:
         return delete_node(self.__root)
 
 
-if __name__ == '__main__':
+def test1():
     l1 = read_data('../ex2.csv')
     # l1 = read_data()
     print([x.__str__() for x in l1])
-    print('开始建树')
+    print('start insert: ')
     bpTree = BplusTree(4)
     for kv in l1:
         bpTree.insert(kv)
@@ -437,13 +433,12 @@ if __name__ == '__main__':
     searchResult = bpTree.search(1, 3)
     print([str(x.key) + x.value for x in searchResult])
     print('delete: ')
-    print(bpTree.delete(19))
-    bpTree.show()
     print(bpTree.delete(7))
     bpTree.show()
-    print('hello')
-    l0 = [3, 5, 6, 7, 8]
-    print(l0.index(7))
-    print(binary_search_right(l0, 4))
-    print(binary_search_left(l0, 4))
-    print(l0[-1])
+    print(bpTree.delete(9))
+    bpTree.show()
+    print('Yes')
+
+
+if __name__ == '__main__':
+    test1()
