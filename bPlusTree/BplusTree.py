@@ -157,12 +157,18 @@ class BplusTree:
                 return
             else:
                 if not w.isLeaf():
-                    print(w.indexValueList, 'inter height = ', h)
+                    if w.parent is None:
+                        print(w.indexValueList, 'inter height = ', h, 'parent = None')
+                    else:
+                        print(w.indexValueList, 'inter height = ', h, 'parent = ', w.parent.indexValueList)
                     if h == height:
                         height += 1
                     queue.extend([[i, height] for i in w.pointerList])
                 else:
-                    print([v.key for v in w.keyValueList], 'leaf height =', h)
+                    if w.parent is None:
+                        print([v.key for v in w.keyValueList], 'leaf height =', h, 'parent = None')
+                    else:
+                        print([v.key for v in w.keyValueList], 'leaf height =', h, 'parent = ', w.parent.indexValueList)
 
     # 依次输出所有叶结点存储的键值对
     def leaves(self):
@@ -265,6 +271,10 @@ class BplusTree:
                     + rightChild.indexValueList
                 # 将右儿子结点复制到左儿子
                 leftChild.pointerList = leftChild.pointerList + rightChild.pointerList
+                print('+++++')
+                print(leftChild.indexValueList)
+                for leftChildChild in leftChild.pointerList:
+                    leftChildChild.parent = leftChild
             # 在node结点删除右儿子
             node.pointerList.remove(rightChild)
             # 在node结点删除索引值（已经移入左儿子作为合并后的结点 或者 合并叶结点之后要删除该索引值）
@@ -347,21 +357,21 @@ class BplusTree:
                     try:
                         keyValue = node.keyValueList[index]
                     except IndexError:
-                        raise IndexError('index error')
+                        return -1
                     else:
                         if keyValue.key != key:
-                            raise ValueError('this key does not exist')
+                            return -1
                         else:
                             node.keyValueList.remove(keyValue)
-                if node.isLessThanHalf():
-                    delete_node(node.parent, False)
-                if node.parent is not None:
-                    parent_indexList = node.parent.indexValueList
-                    if key in parent_indexList:
-                        i = parent_indexList.index(key)
-                        parent_indexList[i] = node.keyValueList[0].key
-                return
-
+                            if node.isLessThanHalf():
+                                return delete_node(node.parent, False)
+                            else:
+                                if node.parent is not None:
+                                    parent_indexList = node.parent.indexValueList
+                                    if key in parent_indexList:
+                                        i = parent_indexList.index(key)
+                                        parent_indexList[i] = node.keyValueList[0].key
+                            return 0
             else:
                 index = binary_search_right(node.indexValueList, key)
                 if index == len(node.indexValueList):
@@ -371,18 +381,20 @@ class BplusTree:
                         if rightChild.isLeaf():
                             if len(rightChild.keyValueList) + len(leftChild.keyValueList) \
                                     <= self.__order - 1:
-                                delete_node(merge(node, index - 1), canDelete)
+                                return delete_node(merge(node, index - 1), canDelete)
                             else:
                                 transfer_leftToRight(node, index - 1)
+                                return 0
                         else:
                             if len(rightChild.pointerList) + len(leftChild.pointerList) \
                                     <= self.__order:
-                                delete_node(merge(node, index - 1), canDelete)
+                                return delete_node(merge(node, index - 1), canDelete)
                             else:
                                 transfer_leftToRight(node, index - 1)
+                                return 0
                     else:
                         if canDelete:
-                            delete_node(rightChild, canDelete)
+                            return delete_node(rightChild, canDelete)
                 else:
                     leftChild = node.pointerList[index]
                     rightChild = node.pointerList[index + 1]
@@ -390,20 +402,22 @@ class BplusTree:
                         if leftChild.isLeaf():
                             if len(rightChild.keyValueList) + len(leftChild.keyValueList) \
                                     <= self.__order - 1:
-                                delete_node(merge(node, index), canDelete)
+                                return delete_node(merge(node, index), canDelete)
                             else:
                                 transfer_rightToLeft(node, index)
+                                return 0
                         else:
                             if len(rightChild.pointerList) + len(leftChild.pointerList) \
                                     <= self.__order:
-                                delete_node(merge(node, index), canDelete)
+                                return delete_node(merge(node, index), canDelete)
                             else:
                                 transfer_rightToLeft(node, index)
+                                return 0
                     else:
                         if canDelete:
-                            delete_node(leftChild, canDelete)
+                            return delete_node(leftChild, canDelete)
 
-        delete_node(self.__root)
+        return delete_node(self.__root)
 
 
 if __name__ == '__main__':
@@ -423,9 +437,9 @@ if __name__ == '__main__':
     searchResult = bpTree.search(1, 3)
     print([str(x.key) + x.value for x in searchResult])
     print('delete: ')
-    bpTree.delete(11)
+    print(bpTree.delete(19))
     bpTree.show()
-    bpTree.delete(7)
+    print(bpTree.delete(7))
     bpTree.show()
     print('hello')
     l0 = [3, 5, 6, 7, 8]
