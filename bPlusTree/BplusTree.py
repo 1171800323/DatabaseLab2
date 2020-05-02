@@ -137,9 +137,10 @@ class BplusTree:
                 if n.isFull():
                     insert_node(split_inter(n), canInsert)
                 else:
-                    # 内结点不满，寻找适合插入的子女结点进行插入
-                    index = binary_search_right(n.indexValueList, keyValue.key)
-                    insert_node(n.pointerList[index], canInsert)
+                    if canInsert:
+                        # 内结点不满，寻找适合插入的子女结点进行插入
+                        index = binary_search_right(n.indexValueList, keyValue.key)
+                        insert_node(n.pointerList[index], canInsert)
 
         insert_node(node)
 
@@ -368,37 +369,39 @@ class BplusTree:
                     rightChild = node.pointerList[index]
                     if rightChild.isLessThanHalf():
                         if rightChild.isLeaf():
-                            if len(rightChild.keyValueList) + len(leftChild.keyValueList) <= self.__order - 1:
+                            if len(rightChild.keyValueList) + len(leftChild.keyValueList) \
+                                    <= self.__order - 1:
                                 delete_node(merge(node, index - 1), canDelete)
                             else:
                                 transfer_leftToRight(node, index - 1)
-                                delete_node(rightChild, canDelete)
                         else:
-                            if len(rightChild.pointerList) + len(leftChild.pointerList) <= self.__order:
+                            if len(rightChild.pointerList) + len(leftChild.pointerList) \
+                                    <= self.__order:
                                 delete_node(merge(node, index - 1), canDelete)
                             else:
                                 transfer_leftToRight(node, index - 1)
-                                delete_node(rightChild, canDelete)
                     else:
-                        delete_node(rightChild, canDelete)
+                        if canDelete:
+                            delete_node(rightChild, canDelete)
                 else:
                     leftChild = node.pointerList[index]
                     rightChild = node.pointerList[index + 1]
                     if leftChild.isLessThanHalf():
                         if leftChild.isLeaf():
-                            if len(rightChild.keyValueList) + len(leftChild.keyValueList) <= self.__order - 1:
+                            if len(rightChild.keyValueList) + len(leftChild.keyValueList) \
+                                    <= self.__order - 1:
                                 delete_node(merge(node, index), canDelete)
                             else:
                                 transfer_rightToLeft(node, index)
-                                delete_node(leftChild, canDelete)
                         else:
-                            if len(rightChild.pointerList) + len(leftChild.pointerList) <= self.__order:
+                            if len(rightChild.pointerList) + len(leftChild.pointerList) \
+                                    <= self.__order:
                                 delete_node(merge(node, index), canDelete)
                             else:
                                 transfer_rightToLeft(node, index)
-                                delete_node(leftChild, canDelete)
                     else:
-                        delete_node(leftChild, canDelete)
+                        if canDelete:
+                            delete_node(leftChild, canDelete)
 
         delete_node(self.__root)
 
