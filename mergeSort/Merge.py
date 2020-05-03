@@ -123,7 +123,7 @@ def merge(run=False):
                     block_dict[location] = None
 
 
-# 使用python内置函数直接对原属数据排序，作为标准结果进行对比
+# 使用python内置函数直接对原数据排序，作为标准结果进行对比
 def standard_sort(run=False, filename='../data.csv'):
     if run:
         child_sets = []
@@ -157,6 +157,6 @@ def compare():
 
 if __name__ == '__main__':
     split()
-    merge()
+    merge(True)
     standard_sort()
     compare()

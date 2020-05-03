@@ -1,3 +1,4 @@
+import datetime
 from collections import deque
 
 import pandas as pd
@@ -424,7 +425,7 @@ class BplusTree:
 
 
 def test1():
-    l1 = read_data('../ex2.csv')
+    l1 = read_data('../ex1.csv')
     # l1 = read_data()
     print([x.__str__() for x in l1])
     print('start insert: ')
@@ -437,15 +438,43 @@ def test1():
         print([str(x.key) + x.value for x in bpTree.leaves()])
         print()
     print('search: ')
-    searchResult = bpTree.search(1, 3)
+    searchResult = bpTree.search(9, 10)
     print([str(x.key) + x.value for x in searchResult])
     print('delete: ')
     print(bpTree.delete(12))
     bpTree.show()
-    # print(bpTree.delete(9))
-    # bpTree.show()
+    print(bpTree.delete(11))
+    bpTree.show()
+    print(bpTree.delete(13))
+    bpTree.show()
+    print(bpTree.delete(7))
+    bpTree.show()
+    print('Yes')
+
+
+def test2():
+    l1 = read_data()
+    print('start insert: ')
+    startTime = datetime.datetime.now()
+    bpTree = BplusTree(10)
+    for kv in l1:
+        bpTree.insert(kv)
+        print('insert ', kv)
+    endTime = datetime.datetime.now()
+    print(str((endTime - startTime).seconds) + 's')
+    print('end insert: ')
+    print(len(bpTree.leaves()))
+    bpTree.show()
+    print([str(x.key) + x.value for x in bpTree.leaves()])
+    print()
+    print('search: ')
+    searchResult = bpTree.search(4, 10)
+    print([str(x.key) + x.value for x in searchResult])
+    print('delete: ')
+    print(bpTree.delete(4))
+    bpTree.show()
     print('Yes')
 
 
 if __name__ == '__main__':
-    test1()
+    test2()
